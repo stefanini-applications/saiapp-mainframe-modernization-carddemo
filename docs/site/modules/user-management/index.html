@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - User Story Development Guide</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .header { background: linear-gradient(135deg, #37474f, #546e7a); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2em; }
+        .header p { margin: 0; opacity: 0.85; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        section { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 28px; margin-bottom: 28px; }
+        h2 { color: #37474f; margin-top: 0; border-bottom: 2px solid #eceff1; padding-bottom: 8px; }
+        h3 { color: #455a64; }
+        .badge { display: inline-block; background: #eceff1; color: #546e7a; font-size: 0.8em; padding: 3px 10px; border-radius: 12px; font-family: monospace; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #eceff1; color: #37474f; text-align: left; padding: 10px; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 10px; }
+        pre { background: #f8f9fa; border-left: 4px solid #546e7a; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        ul { padding-left: 20px; line-height: 1.8; }
+        .complexity { display: flex; gap: 12px; flex-wrap: wrap; }
+        .cbox { flex: 1; min-width: 150px; border-radius: 8px; padding: 14px; }
+        .cbox.simple { background: #e8f5e9; border-left: 4px solid #43a047; }
+        .cbox.medium { background: #fff8e1; border-left: 4px solid #ffb300; }
+        .cbox.complex { background: #fce4ec; border-left: 4px solid #e91e63; }
+        .cbox strong { display: block; margin-bottom: 6px; }
+        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>👥 User Management</h1>
+    <p>User Story Development Guide · CardDemo Module</p>
+</div>
+<div class="container">
+    <section>
+        <h2>📋 Overview</h2>
+        <p><strong>Purpose:</strong> Admin-only CRUD functions for managing CardDemo user accounts: list, add, update, and delete.</p>
+        <p><strong>Business Context:</strong> User Management controls who can access CardDemo. Only users with SEC-USR-TYPE = A can access the Admin Menu and these functions. The user security file is a VSAM PS file.</p>
+        <p>
+            <span class="badge">CA00 · COADM01C</span>
+            <span class="badge">CU00 · COUSR00C</span>
+            <span class="badge">CU01 · COUSR01C</span>
+            <span class="badge">CU02 · COUSR02C</span>
+            <span class="badge">CU03 · COUSR03C</span>
+        </p>
+    </section>
+    <section>
+        <h2>🎯 User Story Templates</h2>
+        <ul>
+            <li>As an <em>admin</em>, I want to list all registered users so that I can audit who has system access.</li>
+            <li>As an <em>admin</em>, I want to add a new user with ID, name, password, and type so that they can log in immediately.</li>
+            <li>As an <em>admin</em>, I want to update an existing user's password so that I can assist with password resets.</li>
+            <li>As an <em>admin</em>, I want to delete a user so that I can revoke access for departed employees.</li>
+            <li>As the <em>system</em>, I want to prevent duplicate user IDs so that each user has a unique login.</li>
+        </ul>
+        <h3>Acceptance Criteria</h3>
+        <pre>Given: admin navigates to List Users (CU00)
+Then:  all users displayed with SEC-USR-ID, SEC-USR-FNAME, SEC-USR-LNAME, SEC-USR-TYPE
+
+Given: admin submits new user with unique SEC-USR-ID
+When:  COUSR01C processes CU01 transaction
+Then:  new SEC-USER-DATA record written to USRSEC.PS
+And:   confirmation "User added" displayed
+
+Given: admin attempts to add a user with an existing SEC-USR-ID
+When:  COUSR01C checks the VSAM file
+Then:  error "User ID already exists" displayed and no record written
+
+Given: admin confirms deletion of a user
+When:  COUSR03C processes CU03 transaction
+Then:  user record deleted from USRSEC.PS
+And:   user can no longer log in</pre>
+    </section>
+    <section>
+        <h2>🔧 Technical Foundation</h2>
+        <h3>User Security Record (CSUSR01Y — 80 bytes)</h3>
+        <pre>SEC-USR-ID      PIC X(08)  -- Unique user ID (VSAM key)
+SEC-USR-FNAME   PIC X(20)  -- First name
+SEC-USR-LNAME   PIC X(20)  -- Last name
+SEC-USR-PWD     PIC X(08)  -- Password (plaintext in demo)
+SEC-USR-TYPE    PIC X(01)  -- U=Regular User, A=Admin</pre>
+        <table>
+            <tr><th>Component</th><th>Responsibility</th></tr>
+            <tr><td>COADM01C.cbl</td><td>Admin Menu routing (CA00)</td></tr>
+            <tr><td>COUSR00C.cbl</td><td>List users with paging</td></tr>
+            <tr><td>COUSR01C.cbl</td><td>Add new user with duplicate check</td></tr>
+            <tr><td>COUSR02C.cbl</td><td>Update user fields (password, name, type)</td></tr>
+            <tr><td>COUSR03C.cbl</td><td>Delete user with confirmation</td></tr>
+            <tr><td>AWS.M2.CARDDEMO.USRSEC.PS</td><td>VSAM PS user security file</td></tr>
+        </table>
+    </section>
+    <section>
+        <h2>📊 Complexity Guidelines</h2>
+        <div class="complexity">
+            <div class="cbox simple"><strong>Simple (1–2 pts)</strong>List users; view user details</div>
+            <div class="cbox medium"><strong>Medium (3–5 pts)</strong>Add user with validation; update password; delete with confirmation</div>
+            <div class="cbox complex"><strong>Complex (5–8 pts)</strong>Role-based permission model; password policy enforcement; audit log for user changes</div>
+        </div>
+    </section>
+</div>
+<footer><a href="../../index.html">← Back to Index</a> · Last updated: April 2025</footer>
+</body>
+</html>

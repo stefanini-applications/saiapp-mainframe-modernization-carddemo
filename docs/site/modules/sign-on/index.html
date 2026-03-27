@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign-On - User Story Development Guide</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .header { background: linear-gradient(135deg, #1a237e, #3949ab); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2em; }
+        .header p { margin: 0; opacity: 0.85; font-size: 1.1em; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        section { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 28px; margin-bottom: 28px; }
+        h2 { color: #1a237e; margin-top: 0; border-bottom: 2px solid #e8eaf6; padding-bottom: 8px; }
+        h3 { color: #283593; }
+        .badge { display: inline-block; background: #e8eaf6; color: #3949ab; font-size: 0.8em; padding: 3px 10px; border-radius: 12px; font-family: monospace; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #e8eaf6; color: #1a237e; text-align: left; padding: 10px; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 10px; }
+        pre { background: #f8f9fa; border-left: 4px solid #3949ab; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        ul { padding-left: 20px; line-height: 1.8; }
+        .complexity { display: flex; gap: 12px; flex-wrap: wrap; }
+        .cbox { flex: 1; min-width: 150px; border-radius: 8px; padding: 14px; }
+        .cbox.simple { background: #e8f5e9; border-left: 4px solid #43a047; }
+        .cbox.medium { background: #fff8e1; border-left: 4px solid #ffb300; }
+        .cbox.complex { background: #fce4ec; border-left: 4px solid #e91e63; }
+        .cbox strong { display: block; margin-bottom: 6px; }
+        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>🔐 Sign-On</h1>
+    <p>User Story Development Guide · CardDemo Module</p>
+</div>
+<div class="container">
+
+    <section>
+        <h2>📋 Overview</h2>
+        <p><strong>Purpose:</strong> Authenticate CardDemo users (regular and admin) and establish a CICS session with appropriate routing.</p>
+        <p><strong>Business Context:</strong> Every user interaction with CardDemo starts here. The sign-on validates credentials against the VSAM user security file and sets the COMMAREA user type flag that determines which menu is presented.</p>
+        <p><strong>CICS Transaction:</strong> <span class="badge">CC00</span> <strong>Program:</strong> <span class="badge">COSGN00C</span> <strong>Map:</strong> <span class="badge">COSGN00.bms</span></p>
+    </section>
+
+    <section>
+        <h2>🎯 User Story Templates</h2>
+        <h3>Core Stories</h3>
+        <ul>
+            <li><strong>Login (Regular User):</strong> As a <em>regular user</em>, I want to enter my user ID and password so that I can access my account and card management functions.</li>
+            <li><strong>Login (Admin):</strong> As an <em>admin user</em>, I want to authenticate with my admin credentials so that I can access administrative functions.</li>
+            <li><strong>Invalid Credentials:</strong> As a <em>user</em>, when I enter incorrect credentials, I want to see a clear error message so that I know my login failed and can retry.</li>
+            <li><strong>Session Routing:</strong> As a <em>user</em>, after successful login I want to be routed to the appropriate menu for my role so that I only see functions I am authorized to use.</li>
+        </ul>
+        <h3>Acceptance Criteria Examples</h3>
+        <pre>Given: valid user ID (SEC-USR-TYPE=U) and correct password
+When:  I submit the sign-on screen (CC00)
+Then:  Main menu (CM00) is displayed with user-level options
+
+Given: valid admin ID (SEC-USR-TYPE=A) and correct password
+When:  I submit the sign-on screen
+Then:  Admin menu (CA00) is displayed with administrative options
+
+Given: any user ID with an incorrect password
+When:  I submit the sign-on screen
+Then:  An error message is displayed and the sign-on screen is re-presented
+
+Given: a user ID not found in AWS.M2.CARDDEMO.USRSEC.PS
+When:  I submit the sign-on screen
+Then:  An error message "User not found" is displayed</pre>
+    </section>
+
+    <section>
+        <h2>🔧 Technical Foundation</h2>
+        <h3>Key Components</h3>
+        <table>
+            <tr><th>Component</th><th>Type</th><th>Responsibility</th></tr>
+            <tr><td>COSGN00C.cbl</td><td>CICS COBOL</td><td>Sign-on business logic: validate credentials, set COMMAREA, route to next screen</td></tr>
+            <tr><td>COSGN00.bms</td><td>BMS Map</td><td>Terminal screen layout for user ID and password fields</td></tr>
+            <tr><td>CSUSR01Y.cpy</td><td>Copybook</td><td>User security record structure (80 bytes)</td></tr>
+            <tr><td>COCOM01Y.cpy</td><td>Copybook</td><td>COMMAREA structure passed between CICS programs</td></tr>
+            <tr><td>AWS.M2.CARDDEMO.USRSEC.PS</td><td>VSAM PS</td><td>User security file (user IDs, passwords, types)</td></tr>
+        </table>
+        <h3>Data Structure — SEC-USER-DATA (CSUSR01Y)</h3>
+        <pre>SEC-USR-ID      PIC X(08)  -- Login ID
+SEC-USR-FNAME   PIC X(20)  -- First name
+SEC-USR-LNAME   PIC X(20)  -- Last name
+SEC-USR-PWD     PIC X(08)  -- Password
+SEC-USR-TYPE    PIC X(01)  -- U=Regular User, A=Admin</pre>
+        <h3>Dependencies</h3>
+        <ul>
+            <li><strong>VSAM USRSEC.PS:</strong> Must be loaded (DUSRSECJ JCL) before first login</li>
+            <li><strong>CICS COMMAREA:</strong> Passes user type to main-menu for role-based routing</li>
+            <li><strong>RACF:</strong> Provides environment-level security (CICS region access)</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>📊 Complexity Guidelines</h2>
+        <div class="complexity">
+            <div class="cbox simple">
+                <strong>Simple (1–2 pts)</strong>
+                Display sign-on screen; show error message on failure
+            </div>
+            <div class="cbox medium">
+                <strong>Medium (3–5 pts)</strong>
+                Add account lockout after N failed attempts; password change requirement
+            </div>
+            <div class="cbox complex">
+                <strong>Complex (5–8 pts)</strong>
+                RACF integration; multi-factor token validation; audit trail for all login attempts
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>⚡ Development Acceleration</h2>
+        <ul>
+            <li><strong>Existing BMS map (COSGN00.bms):</strong> Screen layout already defined; modify only field attributes</li>
+            <li><strong>VSAM read pattern:</strong> Direct key read on SEC-USR-ID; reuse pattern from COUSR00C</li>
+            <li><strong>COMMAREA contract:</strong> COCOM01Y defines the shared structure; do not change field offsets</li>
+            <li><strong>Default credentials:</strong> ADMIN001/PASSWORD and USER0001/PASSWORD pre-loaded in sample data</li>
+        </ul>
+    </section>
+
+</div>
+<footer><a href="../../index.html">← Back to Index</a> · Last updated: April 2025</footer>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorization - User Story Development Guide</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .header { background: linear-gradient(135deg, #b71c1c, #c62828); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2em; }
+        .header p { margin: 0; opacity: 0.85; }
+        .opt-banner { background: #fff3e0; border-left: 4px solid #e65100; padding: 12px 20px; border-radius: 4px; margin-bottom: 20px; color: #e65100; font-weight: bold; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        section { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 28px; margin-bottom: 28px; }
+        h2 { color: #b71c1c; margin-top: 0; border-bottom: 2px solid #ffebee; padding-bottom: 8px; }
+        h3 { color: #c62828; }
+        .badge { display: inline-block; background: #ffebee; color: #c62828; font-size: 0.8em; padding: 3px 10px; border-radius: 12px; font-family: monospace; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #ffebee; color: #b71c1c; text-align: left; padding: 10px; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 10px; }
+        pre { background: #f8f9fa; border-left: 4px solid #c62828; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        ul { padding-left: 20px; line-height: 1.8; }
+        .complexity { display: flex; gap: 12px; flex-wrap: wrap; }
+        .cbox { flex: 1; min-width: 150px; border-radius: 8px; padding: 14px; }
+        .cbox.simple { background: #e8f5e9; border-left: 4px solid #43a047; }
+        .cbox.medium { background: #fff8e1; border-left: 4px solid #ffb300; }
+        .cbox.complex { background: #fce4ec; border-left: 4px solid #e91e63; }
+        .cbox strong { display: block; margin-bottom: 6px; }
+        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>🔒 Authorization</h1>
+    <p>User Story Development Guide · CardDemo Optional Module</p>
+</div>
+<div class="container">
+    <div class="opt-banner">⚠️ Optional Module — Requires IMS DB, DB2, and IBM MQ infrastructure</div>
+    <section>
+        <h2>📋 Overview</h2>
+        <p><strong>Purpose:</strong> Real-time credit card authorization processing via IBM MQ, with authorization storage in IMS hierarchical database and fraud reporting in DB2.</p>
+        <p><strong>Business Context:</strong> Simulates a POS authorization flow: a merchant system sends an authorization request via MQ; CardDemo validates account status, credit limit, and card expiry; approves or declines; stores in IMS; and returns response via reply queue. Suspicious transactions can be flagged as fraud in DB2.</p>
+        <p>
+            <span class="badge">CPVS · COPAUS0C</span>
+            <span class="badge">CPVD · COPAUS1C</span>
+            <span class="badge">CP00 · COPAUA0C (MQ trigger)</span>
+            <span class="badge">CBPAUP0J · CBPAUP0C (Batch)</span>
+        </p>
+    </section>
+    <section>
+        <h2>🎯 User Story Templates</h2>
+        <ul>
+            <li>As a <em>POS system</em>, I want to submit an authorization request via MQ so that real-time approval or decline is processed.</li>
+            <li>As a <em>cardholder</em>, I want to view my pending authorizations so that I can track recent activity.</li>
+            <li>As a <em>fraud analyst</em>, I want to mark a suspicious authorization as fraudulent so that it is escalated to DB2 for analytics.</li>
+            <li>As an <em>operations engineer</em>, I want to run the batch purge of expired authorizations so that stale records are removed and available credit is restored.</li>
+        </ul>
+        <h3>Acceptance Criteria</h3>
+        <pre>Given: valid MQ authorization request with CARD-NUM, AUTH-AMT, MERCHANT-ID
+When:  COPAUA0C (CP00) is triggered by MQ message
+Then:  account looked up via CARDXREF and ACCTDATA
+And:   if ACCT-ACTIVE-STATUS=Y and credit available: response = APPROVED
+And:   authorization record stored in IMS DBPAUTP0
+And:   response sent to MQ reply queue within 500ms
+
+Given: authorization request for expired card (CARD-EXPIRAION-DATE in past)
+When:  COPAUA0C processes the request
+Then:  response = DECLINED with reason code "EXPIRY"
+
+Given: fraud analyst marks authorization as AUTH-FRAUD=Y in COPAUS1C (CPVD)
+When:  COPAUS2C writes to DB2
+Then:  AUTHFRDS row inserted with AUTH-FRAUD=Y and FRAUD-RPT-DATE=today
+
+Given: CBPAUP0J batch runs
+When:  CBPAUP0C purges authorizations older than retention period
+Then:  expired IMS records deleted
+And:   ACCT-CURR-BAL restored for unmatched authorizations</pre>
+    </section>
+    <section>
+        <h2>🔧 Technical Foundation</h2>
+        <table>
+            <tr><th>Component</th><th>Responsibility</th></tr>
+            <tr><td>COPAUA0C.cbl</td><td>MQ-triggered: process authorization request, write IMS, send response</td></tr>
+            <tr><td>COPAUS0C.cbl</td><td>CICS: display pending authorization summary</td></tr>
+            <tr><td>COPAUS1C.cbl</td><td>CICS: display authorization detail, initiate fraud flag</td></tr>
+            <tr><td>COPAUS2C.cbl</td><td>CICS: insert fraud record into DB2 AUTHFRDS</td></tr>
+            <tr><td>CBPAUP0C.cbl</td><td>Batch: purge expired IMS authorizations, restore credit</td></tr>
+            <tr><td>IMS DBPAUTP0 (HIDAM)</td><td>Authorization storage (hierarchical)</td></tr>
+            <tr><td>DB2 AUTHFRDS</td><td>Fraud analytics table</td></tr>
+            <tr><td>MQ Authorization Queue</td><td>Inbound authorization requests</td></tr>
+            <tr><td>MQ Reply Queue</td><td>Outbound authorization responses</td></tr>
+        </table>
+        <h3>DB2 AUTHFRDS Schema (key columns)</h3>
+        <pre>CARD_NUM       CHAR(16)     PK -- Card number
+AUTH_TS        TIMESTAMP    PK -- Authorization timestamp
+AUTH_RESP_CODE CHAR(2)         -- AP=Approved, DC=Declined
+TRANSACTION_AMT DECIMAL(12,2) -- Requested amount
+AUTH_FRAUD     CHAR(1)         -- Y=Fraudulent
+FRAUD_RPT_DATE DATE            -- When flagged</pre>
+        <h3>⚠️ Setup Note</h3>
+        <p>Update the DB2 schema name in <code>COPAUS2C.cbl</code> to match your environment before compiling. IMS DBDs (DBPAUTP0, DBPAUTX0) and PSBs (PSBPAUTB, PSBPAUTL) must be created by an IMS DBA.</p>
+    </section>
+    <section>
+        <h2>📊 Complexity Guidelines</h2>
+        <div class="complexity">
+            <div class="cbox simple"><strong>Simple (2–3 pts)</strong>View pending authorization summary or detail screen</div>
+            <div class="cbox medium"><strong>Medium (5–8 pts)</strong>Authorization processing with business rule validation; fraud flag write to DB2</div>
+            <div class="cbox complex"><strong>Complex (8–13 pts)</strong>Full MQ integration with request/response; IMS two-phase commit; batch purge with credit restoration</div>
+        </div>
+    </section>
+</div>
+<footer><a href="../../index.html">← Back to Index</a> · Last updated: April 2025</footer>
+</body>
+</html>

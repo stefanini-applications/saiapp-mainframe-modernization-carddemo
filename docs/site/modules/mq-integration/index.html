@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQ Integration - User Story Development Guide</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .header { background: linear-gradient(135deg, #006064, #00838f); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2em; }
+        .header p { margin: 0; opacity: 0.85; }
+        .opt-banner { background: #e0f7fa; border-left: 4px solid #006064; padding: 12px 20px; border-radius: 4px; margin-bottom: 20px; color: #006064; font-weight: bold; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        section { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 28px; margin-bottom: 28px; }
+        h2 { color: #006064; margin-top: 0; border-bottom: 2px solid #e0f7fa; padding-bottom: 8px; }
+        h3 { color: #00838f; }
+        .badge { display: inline-block; background: #e0f7fa; color: #00838f; font-size: 0.8em; padding: 3px 10px; border-radius: 12px; font-family: monospace; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #e0f7fa; color: #006064; text-align: left; padding: 10px; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 10px; }
+        pre { background: #f8f9fa; border-left: 4px solid #00838f; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        ul { padding-left: 20px; line-height: 1.8; }
+        .complexity { display: flex; gap: 12px; flex-wrap: wrap; }
+        .cbox { flex: 1; min-width: 150px; border-radius: 8px; padding: 14px; }
+        .cbox.simple { background: #e8f5e9; border-left: 4px solid #43a047; }
+        .cbox.medium { background: #fff8e1; border-left: 4px solid #ffb300; }
+        .cbox.complex { background: #fce4ec; border-left: 4px solid #e91e63; }
+        .cbox strong { display: block; margin-bottom: 6px; }
+        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>📨 MQ Integration</h1>
+    <p>User Story Development Guide · CardDemo Optional Module</p>
+</div>
+<div class="container">
+    <div class="opt-banner">⚠️ Optional Module — Requires IBM MQ infrastructure</div>
+    <section>
+        <h2>📋 Overview</h2>
+        <p><strong>Purpose:</strong> Expose CardDemo data (account details, system date) to distributed systems via IBM MQ request/response messaging.</p>
+        <p><strong>Business Context:</strong> Demonstrates asynchronous MQ patterns: a remote system sends a request to an MQ queue; the CICS program receives it, looks up VSAM data, and sends the response to a reply queue. Two transactions are available: system date inquiry (CDRD) and account details inquiry (CDRA).</p>
+        <p>
+            <span class="badge">CDRD · CODATE01</span>
+            <span class="badge">CDRA · COACCT01</span>
+        </p>
+    </section>
+    <section>
+        <h2>🎯 User Story Templates</h2>
+        <ul>
+            <li>As a <em>distributed application</em>, I want to request the current mainframe system date via MQ so that I can synchronize timestamps with the host.</li>
+            <li>As a <em>partner system</em>, I want to request account details for a given account ID via MQ so that I can display account information in a remote UI.</li>
+        </ul>
+        <h3>Acceptance Criteria</h3>
+        <pre>Given: client sends MQ message to CDRD queue with reply-queue name
+When:  CODATE01 (CDRD) processes the message
+Then:  current system date written to the MQ reply queue
+
+Given: client sends MQ message to CDRA queue with valid ACCT-ID
+When:  COACCT01 (CDRA) looks up account in VSAM ACCTDATA.PS
+Then:  account details (balance, limit, status) written to MQ reply queue
+
+Given: ACCT-ID in CDRA request does not exist in VSAM
+When:  COACCT01 processes the request
+Then:  error response written to reply queue with "Account not found" indicator</pre>
+    </section>
+    <section>
+        <h2>🔧 Technical Foundation</h2>
+        <table>
+            <tr><th>Component</th><th>Responsibility</th></tr>
+            <tr><td>CODATE01.cbl</td><td>CICS MQ system date inquiry (CDRD)</td></tr>
+            <tr><td>COACCT01.cbl</td><td>CICS MQ account details inquiry (CDRA)</td></tr>
+            <tr><td>AWS.M2.CARDDEMO.ACCTDATA.PS</td><td>Account master VSAM (CDRA read source)</td></tr>
+        </table>
+        <h3>MQ Message Pattern</h3>
+        <pre>-- Request (client → CardDemo)
+MQMD: Reply-to queue name
+MQBODY: Request type + parameters (ACCT-ID for CDRA)
+
+-- Response (CardDemo → client)
+MQMD: Correlation ID matching request
+MQBODY: Response data or error indicator</pre>
+        <h3>Dependencies</h3>
+        <ul>
+            <li><strong>account-management:</strong> CDRA reads CVACT01Y account record from VSAM</li>
+            <li><strong>IBM MQ:</strong> Queue manager and queues must be configured (CRDDEMOM.csd for CICS MQ resources)</li>
+        </ul>
+    </section>
+    <section>
+        <h2>📊 Complexity Guidelines</h2>
+        <div class="complexity">
+            <div class="cbox simple"><strong>Simple (2–3 pts)</strong>System date inquiry via MQ (CDRD)</div>
+            <div class="cbox medium"><strong>Medium (5–8 pts)</strong>Account details inquiry via MQ (CDRA) with VSAM lookup and error handling</div>
+            <div class="cbox complex"><strong>Complex (8–13 pts)</strong>New MQ-based service; multi-field inquiry; correlation ID tracking; timeout and retry handling</div>
+        </div>
+    </section>
+</div>
+<footer><a href="../../index.html">← Back to Index</a> · Last updated: April 2025</footer>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill Payment - User Story Development Guide</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .header { background: linear-gradient(135deg, #1b5e20, #2e7d32); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2em; }
+        .header p { margin: 0; opacity: 0.85; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        section { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 28px; margin-bottom: 28px; }
+        h2 { color: #1b5e20; margin-top: 0; border-bottom: 2px solid #e8f5e9; padding-bottom: 8px; }
+        h3 { color: #2e7d32; }
+        .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 0.8em; padding: 3px 10px; border-radius: 12px; font-family: monospace; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #e8f5e9; color: #1b5e20; text-align: left; padding: 10px; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 10px; }
+        pre { background: #f8f9fa; border-left: 4px solid #2e7d32; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        ul { padding-left: 20px; line-height: 1.8; }
+        .complexity { display: flex; gap: 12px; flex-wrap: wrap; }
+        .cbox { flex: 1; min-width: 150px; border-radius: 8px; padding: 14px; }
+        .cbox.simple { background: #e8f5e9; border-left: 4px solid #43a047; }
+        .cbox.medium { background: #fff8e1; border-left: 4px solid #ffb300; }
+        .cbox.complex { background: #fce4ec; border-left: 4px solid #e91e63; }
+        .cbox strong { display: block; margin-bottom: 6px; }
+        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>💰 Bill Payment</h1>
+    <p>User Story Development Guide · CardDemo Module</p>
+</div>
+<div class="container">
+    <section>
+        <h2>📋 Overview</h2>
+        <p><strong>Purpose:</strong> Allow cardholders to make payments against their outstanding account balance, immediately reducing ACCT-CURR-BAL.</p>
+        <p><strong>Business Context:</strong> Bill payment is a direct write to the account VSAM file. The payment reduces the current balance and increases available credit in real time.</p>
+        <p><span class="badge">CB00 · COBIL00C</span></p>
+    </section>
+    <section>
+        <h2>🎯 User Story Templates</h2>
+        <ul>
+            <li>As a <em>regular user</em>, I want to view my current balance before making a payment so that I know how much to pay.</li>
+            <li>As a <em>regular user</em>, I want to enter a payment amount and submit it so that my balance is reduced immediately.</li>
+            <li>As the <em>system</em>, I want to validate that payment amount does not exceed the current balance so that the account is not over-paid beyond zero.</li>
+        </ul>
+        <h3>Acceptance Criteria</h3>
+        <pre>Given: account with ACCT-CURR-BAL = $500.00
+When:  user enters payment of $200.00 and submits
+Then:  ACCT-CURR-BAL updated to $300.00 in VSAM ACCTDATA.PS
+And:   confirmation screen shows new balance
+
+Given: user enters payment amount greater than current balance
+When:  COBIL00C validates the amount
+Then:  error message "Payment exceeds balance" displayed
+And:   no update made to VSAM</pre>
+    </section>
+    <section>
+        <h2>🔧 Technical Foundation</h2>
+        <table>
+            <tr><th>Component</th><th>Responsibility</th></tr>
+            <tr><td>COBIL00C.cbl</td><td>Read account, validate payment, update ACCT-CURR-BAL in VSAM</td></tr>
+            <tr><td>COBIL00.bms</td><td>BMS map for payment entry and confirmation</td></tr>
+            <tr><td>CVACT01Y.cpy</td><td>Account record structure</td></tr>
+            <tr><td>AWS.M2.CARDDEMO.ACCTDATA.PS</td><td>Account master VSAM file</td></tr>
+        </table>
+        <h3>Dependencies</h3>
+        <ul>
+            <li><strong>account-management:</strong> Reads account record to display current balance</li>
+            <li><strong>sign-on:</strong> ACCT-ID from COMMAREA identifies which account to pay</li>
+        </ul>
+    </section>
+    <section>
+        <h2>📊 Complexity Guidelines</h2>
+        <div class="complexity">
+            <div class="cbox simple"><strong>Simple (1–2 pts)</strong>Display current balance on payment screen</div>
+            <div class="cbox medium"><strong>Medium (3–5 pts)</strong>Process payment with validation; update balance atomically</div>
+            <div class="cbox complex"><strong>Complex (5–8 pts)</strong>Partial payment scheduling; EFT integration; payment history tracking</div>
+        </div>
+    </section>
+</div>
+<footer><a href="../../index.html">← Back to Index</a> · Last updated: April 2025</footer>
+</body>
+</html>

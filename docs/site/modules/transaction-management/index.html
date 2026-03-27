@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Management - User Story Development Guide</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .header { background: linear-gradient(135deg, #bf360c, #e64a19); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2em; }
+        .header p { margin: 0; opacity: 0.85; font-size: 1.1em; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        section { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 28px; margin-bottom: 28px; }
+        h2 { color: #bf360c; margin-top: 0; border-bottom: 2px solid #fbe9e7; padding-bottom: 8px; }
+        h3 { color: #d84315; }
+        .badge { display: inline-block; background: #fbe9e7; color: #e64a19; font-size: 0.8em; padding: 3px 10px; border-radius: 12px; font-family: monospace; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #fbe9e7; color: #bf360c; text-align: left; padding: 10px; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 10px; }
+        pre { background: #f8f9fa; border-left: 4px solid #e64a19; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        ul { padding-left: 20px; line-height: 1.8; }
+        .complexity { display: flex; gap: 12px; flex-wrap: wrap; }
+        .cbox { flex: 1; min-width: 150px; border-radius: 8px; padding: 14px; }
+        .cbox.simple { background: #e8f5e9; border-left: 4px solid #43a047; }
+        .cbox.medium { background: #fff8e1; border-left: 4px solid #ffb300; }
+        .cbox.complex { background: #fce4ec; border-left: 4px solid #e91e63; }
+        .cbox strong { display: block; margin-bottom: 6px; }
+        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>� Transaction Management</h1>
+    <p>User Story Development Guide · CardDemo Module</p>
+</div>
+<div class="container">
+
+    <section>
+        <h2>📋 Overview</h2>
+        <p><strong>Purpose:</strong> Enable users to browse transaction history, view individual transaction details, and add new transactions against a card.</p>
+        <p><strong>Business Context:</strong> Transactions are the heart of the credit card lifecycle. Online transactions are stored in a VSAM KSDS file; daily transactions accumulate in a sequential file and are merged by the batch POSTTRAN job. Type and category codes classify spending for reporting and interest calculation.</p>
+        <p>
+            <span class="badge">CT00 · COTRN00C</span>
+            <span class="badge">CT01 · COTRN01C</span>
+            <span class="badge">CT02 · COTRN02C</span>
+        </p>
+    </section>
+
+    <section>
+        <h2>🎯 User Story Templates</h2>
+        <ul>
+            <li><strong>List Transactions:</strong> As a <em>regular user</em>, I want to browse my transaction history so that I can review and reconcile charges.</li>
+            <li><strong>View Transaction Detail:</strong> As a <em>regular user</em>, I want to view all fields of a specific transaction so that I can verify merchant, amount, and date.</li>
+            <li><strong>Add Transaction:</strong> As a <em>regular user</em>, I want to add a new transaction for a merchant purchase so that it is recorded against my card.</li>
+            <li><strong>Validate Type/Category:</strong> As the <em>system</em>, I want to validate transaction type and category codes so that only valid reference codes are accepted.</li>
+        </ul>
+        <h3>Acceptance Criteria Examples</h3>
+        <pre>Given: card with 15 existing transactions in TRANSACT.VSAM.KSDS
+When:  user opens Transaction List (CT00)
+Then:  transactions displayed in reverse chronological order with paging
+
+Given: user submits valid transaction (type, category, amount, merchant)
+When:  COTRN02C processes the CT02 transaction
+Then:  new TRAN-RECORD written to TRANSACT.VSAM.KSDS
+And:   TRAN-ID is system-generated and unique
+
+Given: user submits transaction with invalid TRAN-TYPE-CD
+When:  COTRN02C validates the code against TRANTYPE.PS
+Then:  error message "Invalid transaction type" displayed
+And:   no record written to VSAM
+
+Given: ACCT-ACTIVE-STATUS = N for the linked account
+When:  user attempts to add a transaction (CT02)
+Then:  transaction rejected with "Account inactive" error</pre>
+    </section>
+
+    <section>
+        <h2>🔧 Technical Foundation</h2>
+        <h3>Key Components</h3>
+        <table>
+            <tr><th>Component</th><th>Type</th><th>Responsibility</th></tr>
+            <tr><td>COTRN00C.cbl</td><td>CICS COBOL</td><td>Transaction list with paging via VSAM browse</td></tr>
+            <tr><td>COTRN01C.cbl</td><td>CICS COBOL</td><td>Display full transaction record by TRAN-ID</td></tr>
+            <tr><td>COTRN02C.cbl</td><td>CICS COBOL</td><td>Validate and write new transaction to VSAM</td></tr>
+            <tr><td>CVTRA05Y.cpy</td><td>Copybook</td><td>Transaction record KSDS (350 bytes, key=TRAN-ID)</td></tr>
+            <tr><td>CVTRA06Y.cpy</td><td>Copybook</td><td>Daily transaction sequential record (350 bytes)</td></tr>
+            <tr><td>CVTRA03Y.cpy</td><td>Copybook</td><td>Transaction type reference (60 bytes)</td></tr>
+            <tr><td>CVTRA04Y.cpy</td><td>Copybook</td><td>Transaction category reference (60 bytes)</td></tr>
+            <tr><td>AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS</td><td>VSAM KSDS</td><td>Online transaction file (AIX on CARD-NUM)</td></tr>
+            <tr><td>AWS.M2.CARDDEMO.TRANTYPE.PS</td><td>VSAM PS</td><td>Transaction type reference</td></tr>
+            <tr><td>AWS.M2.CARDDEMO.TRANCATG.PS</td><td>VSAM PS</td><td>Transaction category reference</td></tr>
+        </table>
+        <h3>Transaction Record (CVTRA05Y — 350 bytes)</h3>
+        <pre>TRAN-ID              PIC X(16)     -- Unique identifier (system-generated)
+TRAN-TYPE-CD         PIC X(02)     -- Type code (validated against TRANTYPE)
+TRAN-CAT-CD          PIC 9(04)     -- Category code (validated against TRANCATG)
+TRAN-SOURCE          PIC X(10)     -- Originating system
+TRAN-DESC            PIC X(100)    -- Free-text description
+TRAN-AMT             PIC S9(09)V99 -- Amount (COMP-3, signed)
+TRAN-MERCHANT-ID     PIC 9(09)     -- Merchant ID
+TRAN-MERCHANT-NAME   PIC X(50)     -- Merchant name
+TRAN-MERCHANT-CITY   PIC X(50)     -- City
+TRAN-MERCHANT-ZIP    PIC X(10)     -- ZIP
+TRAN-CARD-NUM        PIC X(16)     -- Card used (AIX key)
+TRAN-ORIG-TS         PIC X(26)     -- Original timestamp
+TRAN-PROC-TS         PIC X(26)     -- Processing timestamp</pre>
+    </section>
+
+    <section>
+        <h2>📊 Complexity Guidelines</h2>
+        <div class="complexity">
+            <div class="cbox simple">
+                <strong>Simple (1–2 pts)</strong>
+                View transaction detail; read-only inquiry by TRAN-ID
+            </div>
+            <div class="cbox medium">
+                <strong>Medium (3–5 pts)</strong>
+                Add transaction with type/category validation; list with VSAM browse and paging
+            </div>
+            <div class="cbox complex">
+                <strong>Complex (5–8 pts)</strong>
+                Transaction reversal/adjustment; cross-file integrity (account balance check at add time); batch POSTTRAN integration testing
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>⚡ Development Acceleration</h2>
+        <ul>
+            <li><strong>AIX on CARD-NUM:</strong> TRANSACT.VSAM.KSDS has an alternate index on TRAN-CARD-NUM; use it to list all transactions for a card without full-file scan</li>
+            <li><strong>Reference files are small:</strong> TRANTYPE and TRANCATG are loaded into working storage for validation — no repeated VSAM reads per transaction</li>
+            <li><strong>Sample data:</strong> app/data/ASCII/dailytran.txt provides realistic test transactions</li>
+            <li><strong>TRAN-ID generation:</strong> Follow the existing pattern in COTRN02C (timestamp + sequence) to guarantee uniqueness</li>
+        </ul>
+    </section>
+
+</div>
+<footer><a href="../../index.html">← Back to Index</a> · Last updated: April 2025</footer>
+</body>
+</html>
