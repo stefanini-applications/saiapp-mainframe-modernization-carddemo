@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Menu - User Story Development Guide</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .header { background: linear-gradient(135deg, #006064, #0097a7); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2em; }
+        .header p { margin: 0; opacity: 0.85; font-size: 1.1em; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        section { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 28px; margin-bottom: 28px; }
+        h2 { color: #006064; margin-top: 0; border-bottom: 2px solid #e0f7fa; padding-bottom: 8px; }
+        h3 { color: #00838f; }
+        .badge { display: inline-block; background: #e0f7fa; color: #00838f; font-size: 0.8em; padding: 3px 10px; border-radius: 12px; font-family: monospace; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #e0f7fa; color: #006064; text-align: left; padding: 10px; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 10px; }
+        pre { background: #f8f9fa; border-left: 4px solid #0097a7; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        ul { padding-left: 20px; line-height: 1.8; }
+        .complexity { display: flex; gap: 12px; flex-wrap: wrap; }
+        .cbox { flex: 1; min-width: 150px; border-radius: 8px; padding: 14px; }
+        .cbox.simple { background: #e8f5e9; border-left: 4px solid #43a047; }
+        .cbox.medium { background: #fff8e1; border-left: 4px solid #ffb300; }
+        .cbox.complex { background: #fce4ec; border-left: 4px solid #e91e63; }
+        .cbox strong { display: block; margin-bottom: 6px; }
+        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>📋 Main Menu</h1>
+    <p>User Story Development Guide · CardDemo Module</p>
+</div>
+<div class="container">
+    <section>
+        <h2>📋 Overview</h2>
+        <p><strong>Purpose:</strong> Present a role-appropriate menu after login, routing users to account, card, transaction, and payment functions.</p>
+        <p><strong>Business Context:</strong> The main menu is the navigation hub for all regular user functions. It reads the user type from COMMAREA set during sign-on and presents only the options appropriate for that role. Admin users proceed to the Admin Menu (CA00) instead.</p>
+        <p><span class="badge">CM00 · COMEN01C</span></p>
+    </section>
+    <section>
+        <h2>🎯 User Story Templates</h2>
+        <ul>
+            <li>As a <em>regular user</em>, I want to see menu options for account, cards, transactions, reports, and payments so that I can navigate to any function in one step.</li>
+            <li>As an <em>admin user</em>, I want to be routed to the Admin Menu after login so that I access only administrative functions.</li>
+            <li>As a <em>user</em>, I want the menu to display my name so that I know I am logged in with the correct identity.</li>
+        </ul>
+        <h3>Menu Options (Regular User)</h3>
+        <table>
+            <tr><th>Option</th><th>Transaction</th><th>Function</th></tr>
+            <tr><td>1</td><td>CAVW</td><td>View Account Details</td></tr>
+            <tr><td>2</td><td>CAUP</td><td>Update Account Details</td></tr>
+            <tr><td>3</td><td>CCLI</td><td>Credit Card List</td></tr>
+            <tr><td>4</td><td>CT00</td><td>Transaction List</td></tr>
+            <tr><td>5</td><td>CT01</td><td>View Transaction</td></tr>
+            <tr><td>6</td><td>CT02</td><td>Add Transaction</td></tr>
+            <tr><td>7</td><td>CR00</td><td>Transaction Report</td></tr>
+            <tr><td>8</td><td>CB00</td><td>Bill Payment</td></tr>
+            <tr><td>11</td><td>CPVS</td><td>Pending Authorizations (optional)</td></tr>
+        </table>
+    </section>
+    <section>
+        <h2>🔧 Technical Foundation</h2>
+        <table>
+            <tr><th>Component</th><th>Responsibility</th></tr>
+            <tr><td>COMEN01C.cbl</td><td>Menu display and option routing via EXEC CICS XCTL</td></tr>
+            <tr><td>COMEN01.bms</td><td>BMS map for main menu screen</td></tr>
+            <tr><td>COCOM01Y.cpy</td><td>COMMAREA carrying user type, account ID, and screen state</td></tr>
+        </table>
+    </section>
+    <section>
+        <h2>📊 Complexity Guidelines</h2>
+        <div class="complexity">
+            <div class="cbox simple"><strong>Simple (1–2 pts)</strong>Display menu with correct options for user type</div>
+            <div class="cbox medium"><strong>Medium (3–5 pts)</strong>Add/remove menu option based on installed optional module</div>
+            <div class="cbox complex"><strong>Complex (5–8 pts)</strong>Dynamic menu from role-based configuration; audit trail of menu navigation</div>
+        </div>
+    </section>
+</div>
+<footer><a href="../../index.html">← Back to Index</a> · Last updated: April 2025</footer>
+</body>
+</html>

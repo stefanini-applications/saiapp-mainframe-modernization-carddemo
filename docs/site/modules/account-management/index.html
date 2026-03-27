@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Management - User Story Development Guide</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .header { background: linear-gradient(135deg, #1b5e20, #388e3c); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2em; }
+        .header p { margin: 0; opacity: 0.85; font-size: 1.1em; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        section { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 28px; margin-bottom: 28px; }
+        h2 { color: #1b5e20; margin-top: 0; border-bottom: 2px solid #e8f5e9; padding-bottom: 8px; }
+        h3 { color: #2e7d32; }
+        .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 0.8em; padding: 3px 10px; border-radius: 12px; font-family: monospace; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #e8f5e9; color: #1b5e20; text-align: left; padding: 10px; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 10px; }
+        pre { background: #f8f9fa; border-left: 4px solid #388e3c; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        ul { padding-left: 20px; line-height: 1.8; }
+        .complexity { display: flex; gap: 12px; flex-wrap: wrap; }
+        .cbox { flex: 1; min-width: 150px; border-radius: 8px; padding: 14px; }
+        .cbox.simple { background: #e8f5e9; border-left: 4px solid #43a047; }
+        .cbox.medium { background: #fff8e1; border-left: 4px solid #ffb300; }
+        .cbox.complex { background: #fce4ec; border-left: 4px solid #e91e63; }
+        .cbox strong { display: block; margin-bottom: 6px; }
+        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>🏦 Account Management</h1>
+    <p>User Story Development Guide · CardDemo Module</p>
+</div>
+<div class="container">
+
+    <section>
+        <h2>📋 Overview</h2>
+        <p><strong>Purpose:</strong> View and update credit card account information including current balance, credit limits, and key dates.</p>
+        <p><strong>Business Context:</strong> Account Management is the financial core of CardDemo. Balances are updated by the POSTTRAN batch job; limits and dates can be modified online. All other modules (cards, transactions, bill payment) depend on account data.</p>
+        <p>
+            <strong>View Transaction:</strong> <span class="badge">CAVW · COACTVWC</span>
+            <strong>Update Transaction:</strong> <span class="badge">CAUP · COACTUPC</span>
+        </p>
+    </section>
+
+    <section>
+        <h2>🎯 User Story Templates</h2>
+        <ul>
+            <li><strong>View Balance:</strong> As a <em>regular user</em>, I want to view my current balance and available credit so that I can plan my spending.</li>
+            <li><strong>View Account Details:</strong> As a <em>regular user</em>, I want to see account open date, expiration date, and group ID so that I have a full picture of my account.</li>
+            <li><strong>Update ZIP Code:</strong> As a <em>regular user</em>, I want to update my account ZIP code so that my billing address is current.</li>
+            <li><strong>Admin Limit Change:</strong> As an <em>admin</em>, I want to update the credit limit on an account so that I can respond to customer upgrade requests.</li>
+            <li><strong>Activate/Deactivate Account:</strong> As an <em>admin</em>, I want to change the account active status so that I can suspend or restore account access.</li>
+        </ul>
+        <h3>Acceptance Criteria Examples</h3>
+        <pre>Given: authenticated user with a valid ACCT-ID
+When:  user navigates to Account View (CAVW)
+Then:  ACCT-CURR-BAL, ACCT-CREDIT-LIMIT, ACCT-OPEN-DATE, ACCT-EXPIRAION-DATE displayed
+
+Given: admin submits account update with new credit limit
+When:  COACTUPC processes the CAUP transaction
+Then:  ACCT-CREDIT-LIMIT updated in VSAM ACCTDATA.PS
+And:   Confirmation message displayed on screen
+
+Given: ACCT-ACTIVE-STATUS = N
+When:  user attempts to add a transaction via CT02
+Then:  Transaction rejected with "Account inactive" message</pre>
+    </section>
+
+    <section>
+        <h2>🔧 Technical Foundation</h2>
+        <h3>Key Components</h3>
+        <table>
+            <tr><th>Component</th><th>Type</th><th>Responsibility</th></tr>
+            <tr><td>COACTVWC.cbl</td><td>CICS COBOL</td><td>Read account from VSAM, display on BMS map</td></tr>
+            <tr><td>COACTUPC.cbl</td><td>CICS COBOL</td><td>Validate and update account fields in VSAM</td></tr>
+            <tr><td>COACTVW.bms / COACTUP.bms</td><td>BMS Maps</td><td>Screen layouts for view and update</td></tr>
+            <tr><td>CVACT01Y.cpy</td><td>Copybook</td><td>Account record structure (300 bytes, KSDS key=ACCT-ID)</td></tr>
+            <tr><td>AWS.M2.CARDDEMO.ACCTDATA.PS</td><td>VSAM KSDS</td><td>Account master file</td></tr>
+        </table>
+        <h3>Account Record (CVACT01Y — 300 bytes)</h3>
+        <pre>ACCT-ID                  PIC 9(11)     -- Primary key (11-digit account number)
+ACCT-ACTIVE-STATUS       PIC X(01)     -- Y=Active, N=Inactive
+ACCT-CURR-BAL            PIC S9(10)V99 -- Current balance (COMP-3)
+ACCT-CREDIT-LIMIT        PIC S9(10)V99 -- Total credit limit
+ACCT-CASH-CREDIT-LIMIT   PIC S9(10)V99 -- Cash advance limit
+ACCT-OPEN-DATE           PIC X(10)     -- YYYY-MM-DD
+ACCT-EXPIRAION-DATE      PIC X(10)     -- YYYY-MM-DD
+ACCT-REISSUE-DATE        PIC X(10)     -- YYYY-MM-DD
+ACCT-CURR-CYC-CREDIT     PIC S9(10)V99 -- Credits this cycle
+ACCT-CURR-CYC-DEBIT      PIC S9(10)V99 -- Debits this cycle
+ACCT-ADDR-ZIP            PIC X(10)     -- Billing ZIP
+ACCT-GROUP-ID            PIC X(10)     -- Customer segment</pre>
+        <h3>Dependencies</h3>
+        <ul>
+            <li><strong>sign-on:</strong> Must be authenticated; COMMAREA carries user context</li>
+            <li><strong>batch-processing (POSTTRAN):</strong> Updates ACCT-CURR-BAL and cycle totals nightly</li>
+            <li><strong>credit-card-management:</strong> Cards reference ACCT-ID for linkage</li>
+            <li><strong>bill-payment:</strong> Payment reduces ACCT-CURR-BAL directly</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>📊 Complexity Guidelines</h2>
+        <div class="complexity">
+            <div class="cbox simple">
+                <strong>Simple (1–2 pts)</strong>
+                Display account view screen; read-only balance inquiry
+            </div>
+            <div class="cbox medium">
+                <strong>Medium (3–5 pts)</strong>
+                Update credit limit with validation; change active status; update ZIP
+            </div>
+            <div class="cbox complex">
+                <strong>Complex (5–8 pts)</strong>
+                Credit limit change requiring approval workflow; real-time balance recalculation; multi-account batch update
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>⚡ Development Acceleration</h2>
+        <ul>
+            <li><strong>VSAM KSDS direct read:</strong> ACCT-ID is the primary key; O(1) lookup — reuse the read pattern from COACTVWC</li>
+            <li><strong>BMS map already defined:</strong> COACTUP.bms layout covers all updateable fields</li>
+            <li><strong>Sample data:</strong> app/data/ASCII/acctdata.txt contains test accounts for development</li>
+            <li><strong>COMMAREA:</strong> Account context (ACCT-ID) passed from main menu; no need to re-prompt user</li>
+        </ul>
+    </section>
+
+</div>
+<footer><a href="../../index.html">← Back to Index</a> · Last updated: April 2025</footer>
+</body>
+</html>

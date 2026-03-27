@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Type Management - User Story Development Guide</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .header { background: linear-gradient(135deg, #e65100, #f57c00); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2em; }
+        .header p { margin: 0; opacity: 0.85; }
+        .opt-banner { background: #fff3e0; border-left: 4px solid #e65100; padding: 12px 20px; border-radius: 4px; margin-bottom: 20px; color: #e65100; font-weight: bold; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        section { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 28px; margin-bottom: 28px; }
+        h2 { color: #e65100; margin-top: 0; border-bottom: 2px solid #fff3e0; padding-bottom: 8px; }
+        h3 { color: #f57c00; }
+        .badge { display: inline-block; background: #fff3e0; color: #e65100; font-size: 0.8em; padding: 3px 10px; border-radius: 12px; font-family: monospace; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #fff3e0; color: #e65100; text-align: left; padding: 10px; }
+        td { border-bottom: 1px solid #f0f0f0; padding: 10px; }
+        pre { background: #f8f9fa; border-left: 4px solid #f57c00; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+        ul { padding-left: 20px; line-height: 1.8; }
+        .complexity { display: flex; gap: 12px; flex-wrap: wrap; }
+        .cbox { flex: 1; min-width: 150px; border-radius: 8px; padding: 14px; }
+        .cbox.simple { background: #e8f5e9; border-left: 4px solid #43a047; }
+        .cbox.medium { background: #fff8e1; border-left: 4px solid #ffb300; }
+        .cbox.complex { background: #fce4ec; border-left: 4px solid #e91e63; }
+        .cbox strong { display: block; margin-bottom: 6px; }
+        footer { text-align: center; padding: 20px; color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>🏷️ Transaction Type Management</h1>
+    <p>User Story Development Guide · CardDemo Optional Module</p>
+</div>
+<div class="container">
+    <div class="opt-banner">⚠️ Optional Module — Requires DB2 subsystem with precompiler support</div>
+    <section>
+        <h2>📋 Overview</h2>
+        <p><strong>Purpose:</strong> Admin maintenance of transaction type reference data in DB2 tables, synchronized to VSAM files used by the base application.</p>
+        <p><strong>Business Context:</strong> Transaction types classify purchases for interest calculation and reporting. This module demonstrates DB2 embedded static SQL patterns including forward/backward cursor navigation, CRUD operations, and the DB2-to-VSAM extract flow.</p>
+        <p>
+            <span class="badge">CTLI · COTRTLIC</span>
+            <span class="badge">CTTU · COTRTUPC</span>
+            <span class="badge">MNTTRDB2 · COBTUPDT</span>
+            <span class="badge">TRANEXTR · DSNTIAUL</span>
+        </p>
+    </section>
+    <section>
+        <h2>🎯 User Story Templates</h2>
+        <ul>
+            <li>As an <em>admin</em>, I want to list all transaction types in DB2 so that I can review the current reference data.</li>
+            <li>As an <em>admin</em>, I want to add a new transaction type so that it is available for use in transaction processing.</li>
+            <li>As an <em>admin</em>, I want to update a transaction type description so that it accurately reflects its business meaning.</li>
+            <li>As an <em>admin</em>, I want to delete an obsolete transaction type so that the reference list is kept clean.</li>
+            <li>As an <em>operations engineer</em>, I want to run the TRANEXTR batch job after DB2 updates so that VSAM files used by the base application are synchronized.</li>
+        </ul>
+        <h3>Acceptance Criteria</h3>
+        <pre>Given: admin navigates to CTLI (Transaction Type List)
+When:  COTRTLIC opens a DB2 cursor on TRNTYPE table
+Then:  transaction types displayed with type code and description
+And:   forward/backward paging works via cursor navigation
+
+Given: admin adds new type via CTTU (COTRTUPC)
+When:  INSERT INTO TRNTYPE executed with new code and description
+Then:  new row visible in CTLI list
+And:   SQLCODE = 0
+
+Given: admin deletes a type referenced by existing transactions
+When:  COTRTLIC attempts DELETE
+Then:  error "Type in use — cannot delete" displayed
+
+Given: TRANEXTR batch job runs after DB2 updates
+When:  DSNTIAUL extracts TRNTYPE and TRNTYCAT tables
+Then:  VSAM TRANTYPE.PS and TRANCATG.PS updated with latest data</pre>
+    </section>
+    <section>
+        <h2>🔧 Technical Foundation</h2>
+        <table>
+            <tr><th>Component</th><th>Responsibility</th></tr>
+            <tr><td>COTRTLIC.cbl</td><td>List/update/delete with DB2 forward and backward cursors</td></tr>
+            <tr><td>COTRTUPC.cbl</td><td>Add/edit transaction type (INSERT/UPDATE SQL)</td></tr>
+            <tr><td>COBTUPDT.cbl</td><td>Batch maintenance for transaction type table</td></tr>
+            <tr><td>CSDB2RPY.cpy / CSDB2RWY.cpy</td><td>DB2 reply/write copybooks</td></tr>
+            <tr><td>DB2 TRNTYPE</td><td>Transaction type table (TRAN-TYPE, TRAN-TYPE-DESC)</td></tr>
+            <tr><td>DB2 TRNTYCAT</td><td>Transaction type/category table</td></tr>
+        </table>
+        <h3>DB2 Tables</h3>
+        <pre>-- TRNTYPE
+TRAN-TYPE       CHAR(02)  NOT NULL PRIMARY KEY
+TRAN-TYPE-DESC  CHAR(50)
+
+-- TRNTYCAT  
+TRAN-TYPE       CHAR(02)  NOT NULL
+TRAN-CAT-CD     INTEGER   NOT NULL
+TRAN-CAT-DESC   CHAR(50)
+PRIMARY KEY (TRAN-TYPE, TRAN-CAT-CD)</pre>
+    </section>
+    <section>
+        <h2>📊 Complexity Guidelines</h2>
+        <div class="complexity">
+            <div class="cbox simple"><strong>Simple (2–3 pts)</strong>List transaction types with paging</div>
+            <div class="cbox medium"><strong>Medium (5–8 pts)</strong>Add/update/delete with DB2 SQL and referential integrity checks</div>
+            <div class="cbox complex"><strong>Complex (8–13 pts)</strong>DB2-to-VSAM extract pipeline (TRANEXTR); batch MNTTRDB2 orchestration; cursor scrolling with backward navigation</div>
+        </div>
+    </section>
+</div>
+<footer><a href="../../index.html">← Back to Index</a> · Last updated: April 2025</footer>
+</body>
+</html>

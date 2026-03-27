@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardDemo Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #212529; }
+        .hero { background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%); color: white; padding: 60px 40px; text-align: center; }
+        .hero h1 { font-size: 2.8em; margin: 0 0 16px; }
+        .hero p { font-size: 1.2em; opacity: 0.9; margin: 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; margin-top: 32px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 28px; border-top: 4px solid #3949ab; transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; color: inherit; display: block; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .card h3 { margin: 0 0 10px; font-size: 1.1em; color: #1a237e; }
+        .card p { margin: 0; font-size: 0.9em; color: #6c757d; line-height: 1.5; }
+        .badge { display: inline-block; background: #e8eaf6; color: #3949ab; font-size: 0.75em; padding: 2px 8px; border-radius: 12px; margin-bottom: 10px; font-family: monospace; }
+        .badge.optional { background: #fff3e0; color: #e65100; }
+        h2 { color: #1a237e; border-bottom: 2px solid #e8eaf6; padding-bottom: 8px; }
+        footer { text-align: center; padding: 24px; color: #6c757d; font-size: 0.9em; background: white; border-top: 1px solid #e8eaf6; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>📇 CardDemo</h1>
+        <p>Mainframe Credit Card Management — User Story Documentation Hub</p>
+    </div>
+    <div class="container">
+        <h2>📦 Modules</h2>
+        <p>Select a module to view its User Story development guide, technical foundation, and acceptance criteria patterns.</p>
+        <div class="grid">
+            <a href="modules/sign-on/index.html" class="card">
+                <span class="badge">CC00 · COSGN00C</span>
+                <h3>🔐 Sign-On</h3>
+                <p>User authentication and session initialization via RACF/VSAM user security file.</p>
+            </a>
+            <a href="modules/main-menu/index.html" class="card">
+                <span class="badge">CM00 · COMEN01C</span>
+                <h3>📋 Main Menu</h3>
+                <p>Context-sensitive navigation hub routing users and admins to application functions.</p>
+            </a>
+            <a href="modules/account-management/index.html" class="card">
+                <span class="badge">CAVW · CAUP</span>
+                <h3>🏦 Account Management</h3>
+                <p>View and update credit card account balances, limits, and account details.</p>
+            </a>
+            <a href="modules/credit-card-management/index.html" class="card">
+                <span class="badge">CCLI · CCDL · CCUP</span>
+                <h3>💳 Credit Card Management</h3>
+                <p>List, view, and update credit cards associated with an account.</p>
+            </a>
+            <a href="modules/transaction-management/index.html" class="card">
+                <span class="badge">CT00 · CT01 · CT02</span>
+                <h3>💸 Transaction Management</h3>
+                <p>Browse transaction history, view details, and add new transactions.</p>
+            </a>
+            <a href="modules/reporting/index.html" class="card">
+                <span class="badge">CR00 · TRANREPT</span>
+                <h3>📊 Reporting</h3>
+                <p>Online report request and batch transaction category report generation.</p>
+            </a>
+            <a href="modules/bill-payment/index.html" class="card">
+                <span class="badge">CB00 · COBIL00C</span>
+                <h3>💰 Bill Payment</h3>
+                <p>Process payments against account balance to reduce outstanding amounts.</p>
+            </a>
+            <a href="modules/user-management/index.html" class="card">
+                <span class="badge">CA00 · CU00–CU03</span>
+                <h3>👥 User Management</h3>
+                <p>Admin functions for listing, adding, updating, and deleting system users.</p>
+            </a>
+            <a href="modules/batch-processing/index.html" class="card">
+                <span class="badge">JCL · POSTTRAN · INTCALC</span>
+                <h3>⚙️ Batch Processing</h3>
+                <p>Daily batch cycle: transaction posting, interest, statements, and data refresh.</p>
+            </a>
+            <a href="modules/authorization/index.html" class="card">
+                <span class="badge optional">Optional · CPVS · CPVD · CP00</span>
+                <h3>🔒 Authorization</h3>
+                <p>Real-time credit card authorization via MQ, with IMS DB storage and DB2 fraud tracking.</p>
+            </a>
+            <a href="modules/transaction-type-management/index.html" class="card">
+                <span class="badge optional">Optional · CTLI · CTTU</span>
+                <h3>🏷️ Transaction Type Management</h3>
+                <p>Admin maintenance of transaction type reference data in DB2.</p>
+            </a>
+            <a href="modules/mq-integration/index.html" class="card">
+                <span class="badge optional">Optional · CDRD · CDRA</span>
+                <h3>📨 MQ Integration</h3>
+                <p>Account data inquiry via IBM MQ for distributed system integration.</p>
+            </a>
+        </div>
+
+        <h2 style="margin-top:48px">📚 Documentation</h2>
+        <div class="grid">
+            <a href="../system-overview.md" class="card">
+                <h3>📄 System Overview</h3>
+                <p>Complete unified reference: architecture, data models, APIs, business rules, and US templates.</p>
+            </a>
+            <a href="../module-file-map.md" class="card">
+                <h3>🗺️ Module File Map</h3>
+                <p>Machine-readable source file to module mapping for coverage attribution.</p>
+            </a>
+        </div>
+    </div>
+    <footer>CardDemo Documentation · Last updated: April 2025 · Apache 2.0 License</footer>
+</body>
+</html>
